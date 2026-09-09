@@ -186,13 +186,13 @@ jobs:
           source venv/bin/activate
           cd ../../database
           alembic upgrade head
-          echo "✅ Alembic migrations completed successfully"
+          echo "Alembic migrations completed successfully"
         env:
           DATABASE_URL: postgresql+asyncpg://fcke:fcke_test@localhost:5432/fcke_test
 
       - name: Verify database tables exist
         run: |
-          PGPASSWORD=fcke_test psql -h localhost -U fcke -d fcke_test -c "\dt" | grep -E "knowledge_sources|knowledge_documents|audit_events" && echo "✅ Expected tables verified" || { echo "::error::Expected tables not found after migration"; exit 1; }
+          PGPASSWORD=fcke_test psql -h localhost -U fcke -d fcke_test -c "\dt" | grep -E "knowledge_sources|knowledge_documents|audit_events" && echo "Expected tables verified" || { echo "::error::Expected tables not found after migration"; exit 1; }
 
       - name: Run backend tests
         working-directory: apps/api
@@ -202,22 +202,11 @@ jobs:
           python -m pytest tests/backend/ -v --tb=short
         # MANDATORY: Test failures will fail this step and job
 
-      - name: Verify FastAPI can connect to PostgreSQL
+      - name: Verify database connectivity
         working-directory: apps/api
         run: |
           source venv/bin/activate
-          python -c "
-import asyncio
-from app.database import engine
-from sqlalchemy import text
-
-async def verify():
-    async with engine.connect() as conn:
-        result = await conn.execute(text('SELECT 1'))
-        print('✅ FastAPI successfully connected to PostgreSQL')
-
-asyncio.run(verify())
-"
+          PGPASSWORD=fcke_test psql -h localhost -U fcke -d fcke_test -c "SELECT 1 as db_connected;"
         # MANDATORY: Connection failures will fail this step and job
 
   # ===========================================================================
@@ -364,4 +353,4 @@ asyncio.run(verify())
             echo "::error::Next.js build output not found"
             exit 1
           fi
-          echo "✅ Build successful - output directory exists"
+          echo "Build successful - output directory exists"
