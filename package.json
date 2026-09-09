@@ -30,12 +30,14 @@
   ],
   "license": "MIT",
   "author": "Financial Crime Knowledge Engine Team",
-  "pnpm": {
-    "overrides": {
-      "vite": "^6.4.3",
-      "postcss": "^8.5.23",
-      "esbuild": "^0.25.0",
-      "@vitest/mocker": "^4.1.11"
-    }
-  }
+  "overrides": {
+    "vite": "^6.4.3",
+    "postcss": "^8.5.23",
+    "esbuild": "^0.25.0",
+    "@vitest/mocker": "^4.1.11"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
 }
