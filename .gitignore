@@ -86,3 +86,7 @@ test-results/
 generated/
 downloads/
 uploads/
+
+# Nested repositories (accidental copies - should not be committed)
+financial-crime-knowledge-engine/
+phase-0.2-verification/
