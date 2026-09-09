@@ -17,7 +17,7 @@ RUN corepack enable && corepack prepare pnpm@9.1.0 --activate
 
 # Install dependencies with frozen lockfile
 # Use --shamefully-hoist for better Docker compatibility
-RUN pnpm install --frozen-lockfile --shamefully-hoist
+RUN pnpm install --frozen-lockfile --shamefully-hoist 2>&1 || { echo "pnpm install failed"; exit 1; }
 
 # Stage 2: Build
 FROM node:20-alpine AS builder
@@ -34,7 +34,9 @@ ENV NODE_ENV=production
 
 # Enable corepack and build (use exact version from package.json)
 RUN corepack enable && corepack prepare pnpm@9.1.0 --activate
-RUN pnpm run build --filter @fcke/web
+
+# Build the web application with error handling
+RUN pnpm run build --filter @fcke/web 2>&1 || { echo "Next.js build failed"; exit 1; }
 
 # Stage 3: Production
 FROM node:20-alpine AS runner

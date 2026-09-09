@@ -114,6 +114,10 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Install API dependencies for mypy
+        working-directory: apps/api
+        run: pip install -r requirements.txt
+
       - name: Install mypy
         run: pip install mypy
 
@@ -153,15 +157,23 @@ jobs:
 
       - name: Wait for PostgreSQL to be ready
         run: |
-          for i in $(seq 1 30); do
-            pg_isready -h localhost -p 5432 -U fcke -d fcke_test && break || {
-              if [ $i -eq 30 ]; then
-                echo "::error::PostgreSQL did not become ready in time"
-                exit 1
-              fi
-              sleep 2
-            }
-          done
+          python3 -c "
+          import socket
+          import time
+          for i in range(30):
+              try:
+                  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                  s.settimeout(2)
+                  s.connect(('localhost', 5432))
+                  s.close()
+                  print('PostgreSQL is ready')
+                  break
+              except (socket.timeout, ConnectionRefusedError, OSError):
+                  if i == 29:
+                      print('::error::PostgreSQL did not become ready in time')
+                      exit(1)
+                  time.sleep(2)
+          "
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -191,8 +203,34 @@ jobs:
           DATABASE_URL: postgresql+asyncpg://fcke:fcke_test@localhost:5432/fcke_test
 
       - name: Verify database tables exist
+        working-directory: apps/api
         run: |
-          PGPASSWORD=fcke_test psql -h localhost -U fcke -d fcke_test -c "\dt" | grep -E "knowledge_sources|knowledge_documents|audit_events" && echo "Expected tables verified" || { echo "::error::Expected tables not found after migration"; exit 1; }
+          source venv/bin/activate
+          python3 -c "
+          import asyncio
+          from sqlalchemy import text
+          from sqlalchemy.ext.asyncio import create_async_engine
+          
+          async def check_tables():
+              engine = create_async_engine('postgresql+asyncpg://fcke:fcke_test@localhost:5432/fcke_test')
+              async with engine.connect() as conn:
+                  result = await conn.execute(text(\"\"\"
+                      SELECT table_name FROM information_schema.tables 
+                      WHERE table_schema = 'public'
+                  \"\"\"))
+                  tables = [row[0] for row in result.fetchall()]
+                  expected = {'knowledge_sources', 'knowledge_documents', 'audit_events'}
+                  found = set(tables) & expected
+                  if found == expected:
+                      print(f'✅ All expected tables verified: {sorted(found)}')
+                  else:
+                      missing = expected - found
+                      print(f'::error::Missing tables: {missing}. Found: {sorted(tables)}')
+                      exit(1)
+              await engine.dispose()
+          
+          asyncio.run(check_tables())
+          "
 
       - name: Run backend tests
         working-directory: apps/api

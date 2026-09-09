@@ -37,7 +37,9 @@
     "@vitest/mocker": "^4.1.11"
   },
   "workspaces": [
-    "apps/*",
-    "packages/*"
-  ]
+    "apps/*"
+  ],
+  "devDependencies": {
+    "postcss": "^8.5.28"
+  }
 }
