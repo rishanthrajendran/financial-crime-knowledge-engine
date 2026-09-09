@@ -1,0 +1,58 @@
+# =============================================================================
+# Financial Crime Knowledge Engine - API Dockerfile
+# Python FastAPI backend
+# =============================================================================
+
+FROM python:3.11-slim AS base
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Stage 1: Dependencies
+FROM base AS deps
+
+# Copy requirements
+COPY apps/api/requirements.txt apps/api/pyproject.toml ./
+
+# Create virtual environment and install dependencies
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+RUN pip install --upgrade pip setuptools wheel
+RUN pip install -r requirements.txt
+
+# Stage 2: Production
+FROM base AS production
+
+# Copy virtual environment from deps stage
+COPY --from=deps /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy application code
+COPY apps/api/app ./app
+COPY alembic.ini ./
+COPY database ./database
+
+# Create non-root user
+RUN useradd --create-home --shell /bin/bash fcke
+USER fcke
+
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Start with uvicorn
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

@@ -1,0 +1,165 @@
+# =============================================================================
+# Financial Crime Knowledge Engine - Docker Compose
+# =============================================================================
+# Development environment with all services
+#
+# Usage:
+#   docker compose up -d          # Start all services
+#   docker compose up web api     # Start specific services
+#   docker compose logs -f        # Follow logs
+#   docker compose down           # Stop and remove containers
+# =============================================================================
+
+version: "3.8"
+
+services:
+  # ===========================================================================
+  # Web Frontend (Next.js)
+  # ===========================================================================
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+    container_name: fcke-web
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://api:8000
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - fcke-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ===========================================================================
+  # API Server (FastAPI)
+  # ===========================================================================
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: fcke-api
+    ports:
+      - "${API_PORT:-8000}:8000"
+    environment:
+      - APP_ENV=development
+      - DEBUG=true
+      - DATABASE_URL=postgresql+asyncpg://fcke:fcke_dev@db:5432/fcke
+      - REDIS_URL=redis://redis:6379/0
+      - API_CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://web:3000
+    volumes:
+      - ./apps/api:/app
+      - ./alembic.ini:/app/alembic.ini
+      - ./database:/app/database
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - fcke-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ===========================================================================
+  # Background Worker
+  # ===========================================================================
+  worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
+    container_name: fcke-worker
+    environment:
+      - APP_ENV=development
+      - DEBUG=true
+      - DATABASE_URL=postgresql+asyncpg://fcke:fcke_dev@db:5432/fcke
+      - REDIS_URL=redis://redis:6379/0
+      - WORKER_CONCURRENCY=2
+    volumes:
+      - ./apps/worker:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    networks:
+      - fcke-network
+    restart: unless-stopped
+
+  # ===========================================================================
+  # PostgreSQL Database
+  # ===========================================================================
+  db:
+    image: postgres:16-alpine
+    container_name: fcke-db
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: fcke
+      POSTGRES_PASSWORD: fcke_dev
+      POSTGRES_DB: fcke
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/schemas:/docker-entrypoint-initdb.d:ro
+    networks:
+      - fcke-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fcke -d fcke"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===========================================================================
+  # Redis Cache/Message Broker
+  # ===========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: fcke-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - fcke-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+# =============================================================================
+# Volumes (persistent data)
+# =============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  fcke-network:
+    driver: bridge

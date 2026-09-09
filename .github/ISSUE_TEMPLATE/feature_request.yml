@@ -1,0 +1,49 @@
+---
+name: Feature Request
+about: Suggest a new feature or enhancement for FCKE
+title: '[FEATURE] '
+labels: ['enhancement', 'triage']
+assignees: []
+---
+
+## Feature Description
+
+Clear and concise description of the feature you'd like to see.
+
+## Problem Statement
+
+What problem does this solve? Why is it needed?
+
+## Proposed Solution
+
+Describe your proposed solution in detail.
+
+## Alternative Solutions
+
+Have you considered any alternative solutions or workarounds?
+
+## Target Phase
+
+Which development phase should this be included in?
+
+- [ ] Phase 0 (Foundation)
+- [ ] Phase 1 (Core Features)
+- [ ] Phase 2 (AI/ML)
+- [ ] Phase 3 (Advanced)
+
+## Component(s) Affected
+
+- [ ] Web Frontend
+- [ ] API Backend
+- [ ] Worker
+- [ ] Database
+- [ ] Infrastructure
+- [ ] Documentation
+
+## Additional Context
+
+Any other context, mockups, or screenshots about the feature request.
+
+## Acceptance Criteria
+
+List the criteria that would mark this feature as complete:

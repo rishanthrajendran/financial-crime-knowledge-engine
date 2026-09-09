@@ -1,0 +1,88 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+.build/
+.next/
+out/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+*.egg
+venv/
+.venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+coverage/
+htmlcov/
+.coverage
+*.cover
+
+# Database
+*.db
+*.sqlite3
+*.sqlitedb
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Docker
+.docker/
+
+# Testing
+.nyc_output/
+playwright-report/
+test-results/
+
+# Misc
+*.bak
+*.tmp
+*.temp
+.cache/
+.temp/
+.secrets/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+!example.tfvars
+
+# Kubernetes
+*.kubeconfig
+
+# Alembic (keep migrations, ignore version history in dev)
+# alembic/versions/*.py  # Keep versions in git for now
+
+# Generated files
+generated/
+downloads/
+uploads/
