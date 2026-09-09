@@ -35,12 +35,10 @@ ENV NODE_ENV=production
 # Enable corepack and build (use exact version from package.json)
 RUN corepack enable && corepack prepare pnpm@9.1.0 --activate
 
-# Build the web application with error handling
-# Debug: Show directory contents and then build
-RUN ls -la /app/apps/web/ && \
-    cd /app/apps/web && \
-    echo "Starting Next.js build..." && \
-    npx next build --verbose 2>&1 || { echo "Next.js build failed"; exit 1; }
+# Build the web application using pnpm (same as CI Build job)
+# The CI Build job successfully runs: pnpm --filter @fcke/web build
+WORKDIR /app/apps/web
+RUN pnpm run build 2>&1 || { echo "Next.js build failed"; exit 1; }
 
 # Stage 3: Production
 FROM node:20-alpine AS runner
