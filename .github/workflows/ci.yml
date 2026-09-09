@@ -184,8 +184,8 @@ jobs:
         working-directory: apps/api
         run: |
           source venv/bin/activate
-          cd ../../database
-          alembic upgrade head
+          export PYTHONPATH=.
+          alembic -c ../../alembic.ini -x sqlalchemy.url=$DATABASE_URL upgrade head
           echo "Alembic migrations completed successfully"
         env:
           DATABASE_URL: postgresql+asyncpg://fcke:fcke_test@localhost:5432/fcke_test
