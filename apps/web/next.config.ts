@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   // Enable React strict mode for development
   reactStrictMode: true,
 
+  // Standalone output for Docker deployment (required by Dockerfile.web)
+  output: 'standalone',
+
   // Environment variables exposed to client
   env: {
     NEXT_PUBLIC_APP_VERSION: process.env.APP_VERSION || "0.1.0",
@@ -42,12 +45,9 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // TypeScript and ESLint
+  // TypeScript
   typescript: {
     ignoreBuildErrors: false,
-  },
-  eslint: {
-    ignoreDuringBuilds: false,
   },
 };
 

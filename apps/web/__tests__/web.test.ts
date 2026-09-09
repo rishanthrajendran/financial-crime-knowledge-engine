@@ -134,7 +134,7 @@ describe('Landing Page Components', () => {
         specification_only: { label: 'SPEC ONLY', variant: 'info' },
       };
       
-      Object.entries(statusConfig).forEach(([_status, config]) => {
+      Object.entries(statusConfig).forEach(([, config]) => {
         expect(config.label).toBeDefined();
         expect(config.variant).toBeDefined();
       });
