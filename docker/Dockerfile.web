@@ -36,9 +36,11 @@ ENV NODE_ENV=production
 RUN corepack enable && corepack prepare pnpm@9.1.0 --activate
 
 # Build the web application with error handling
-# Change to web directory and run next build directly
-# This avoids pnpm --filter interpretation issues in Docker context
-RUN cd apps/web && npx next build 2>&1 || { echo "Next.js build failed"; exit 1; }
+# Debug: Show directory contents and then build
+RUN ls -la /app/apps/web/ && \
+    cd /app/apps/web && \
+    echo "Starting Next.js build..." && \
+    npx next build --verbose 2>&1 || { echo "Next.js build failed"; exit 1; }
 
 # Stage 3: Production
 FROM node:20-alpine AS runner
