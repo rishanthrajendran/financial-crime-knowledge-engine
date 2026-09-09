@@ -4,12 +4,17 @@
 # Phase 0: Foundation validation
 #
 # Jobs:
-#   1. lint - Code style checks (ESLint + Ruff)
-#   2. type-check - Type safety (TypeScript + mypy)
-#   3. test-backend - Python tests (pytest)
-#   4. test-frontend - JavaScript/TypeScript tests (vitest)
-#   5. security - Dependency audit and secrets scan
-#   6. build - Next.js build verification
+#   1. lint - Code style checks (ESLint + Ruff) [MANDATORY]
+#   2. type-check - Type safety (TypeScript + mypy) [MANDATORY]
+#   3. test-backend - Python tests (pytest) with PostgreSQL [MANDATORY]
+#   4. test-frontend - JavaScript/TypeScript tests (vitest) [MANDATORY]
+#   5. security - Dependency audit and secrets scan [MANDATORY]
+#   6. docker - Docker Compose verification [MANDATORY]
+#   7. build - Next.js build verification [MANDATORY]
+#
+# CRITICAL: All mandatory jobs must fail on failure.
+# Do NOT use || echo patterns to swallow failures.
+# Informational checks must be explicitly documented as such.
 # =============================================================================
 
 name: CI
@@ -52,10 +57,11 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile || pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Run ESLint (Frontend)
-        run: pnpm --filter @fcke/web lint || echo "ESLint not configured yet"
+        run: pnpm --filter @fcke/web lint
+        # MANDATORY: ESLint failures will fail this step and job
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -67,11 +73,13 @@ jobs:
 
       - name: Run Ruff (Backend)
         working-directory: apps/api
-        run: ruff check . || echo "Ruff check completed with warnings"
+        run: ruff check .
+        # MANDATORY: Ruff failures will fail this step and job
 
       - name: Run Ruff on Worker
         working-directory: apps/worker
-        run: ruff check . || echo "Ruff check completed with warnings"
+        run: ruff check .
+        # MANDATORY: Ruff failures will fail this step and job
 
   # ===========================================================================
   # Job 2: Type Checking
@@ -95,10 +103,11 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile || pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: TypeScript type check (Frontend)
-        run: pnpm --filter @fcke/web type-check || echo "TypeScript check completed"
+        run: pnpm --filter @fcke/web type-check
+        # MANDATORY: Type check failures will fail this step and job
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -110,7 +119,8 @@ jobs:
 
       - name: mypy type check (API)
         working-directory: apps/api
-        run: mypy app || echo "mypy check completed"
+        run: mypy app
+        # MANDATORY: mypy failures will fail this step and job
 
   # ===========================================================================
   # Job 3: Backend Tests
@@ -128,7 +138,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready -U fcke -d fcke_test
+          --health-cmd "pg_isready -U fcke -d fcke_test"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -140,6 +150,18 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Wait for PostgreSQL to be ready
+        run: |
+          for i in $(seq 1 30); do
+            pg_isready -h localhost -p 5432 -U fcke -d fcke_test && break || {
+              if [ $i -eq 30 ]; then
+                echo "::error::PostgreSQL did not become ready in time"
+                exit 1
+              fi
+              sleep 2
+            }
+          done
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -156,13 +178,47 @@ jobs:
           python -m venv venv
           source venv/bin/activate
           pip install -r requirements.txt
-          pip install pytest pytest-asyncio httpx
+          pip install pytest pytest-asyncio httpx alembic
+
+      - name: Run Alembic migrations
+        working-directory: apps/api
+        run: |
+          source venv/bin/activate
+          cd ../../database
+          alembic upgrade head
+          echo "✅ Alembic migrations completed successfully"
+        env:
+          DATABASE_URL: postgresql+asyncpg://fcke:fcke_test@localhost:5432/fcke_test
+
+      - name: Verify database tables exist
+        run: |
+          PGPASSWORD=fcke_test psql -h localhost -U fcke -d fcke_test -c "\dt" | grep -E "knowledge_sources|knowledge_documents|audit_events" && echo "✅ Expected tables verified" || { echo "::error::Expected tables not found after migration"; exit 1; }
 
       - name: Run backend tests
         working-directory: apps/api
         run: |
           source venv/bin/activate
-          python -m pytest tests/ -v --tb=short || echo "Tests completed"
+          cd ../../
+          python -m pytest tests/backend/ -v --tb=short
+        # MANDATORY: Test failures will fail this step and job
+
+      - name: Verify FastAPI can connect to PostgreSQL
+        working-directory: apps/api
+        run: |
+          source venv/bin/activate
+          python -c "
+import asyncio
+from app.database import engine
+from sqlalchemy import text
+
+async def verify():
+    async with engine.connect() as conn:
+        result = await conn.execute(text('SELECT 1'))
+        print('✅ FastAPI successfully connected to PostgreSQL')
+
+asyncio.run(verify())
+"
+        # MANDATORY: Connection failures will fail this step and job
 
   # ===========================================================================
   # Job 4: Frontend Tests
@@ -186,10 +242,11 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile || pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Run frontend tests
-        run: pnpm --filter @fcke/web test || echo "Frontend tests completed"
+        run: pnpm --filter @fcke/web test
+        # MANDATORY: Test failures will fail this step and job
 
   # ===========================================================================
   # Job 5: Security Audit
@@ -200,6 +257,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
@@ -213,24 +272,63 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile || pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Run npm audit
-        run: pnpm audit || echo "Audit completed with warnings"
+        run: pnpm audit --audit-level=moderate
+        # MANDATORY: High/critical vulnerabilities will fail this step
+        # Note: moderate/low are informational; high/critical cause non-zero exit
 
-      - name: Check for secrets
+      - name: Check for secrets with TruffleHog
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          base: HEAD
+          base: ${{ github.event.before }}
           head: HEAD
           extra_args: --only-verified
+        # MANDATORY: Verified secrets will fail this step and job
+        # For push events: scans from previous commit to current
+        # For PR events: scans from base branch to PR head
+        # For first push (no before): falls back to full history scan
 
       - name: Run Phase 0 validation script
-        run: python scripts/validate_phase0.py || echo "Validation completed"
+        run: python scripts/validate_phase0.py
+        # MANDATORY: Validation failures will fail this step and job
 
   # ===========================================================================
-  # Job 6: Build Verification
+  # Job 6: Docker Compose Verification
+  # ===========================================================================
+  docker:
+    name: 🐳 Docker Compose Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker Compose services
+        run: docker compose config
+
+      - name: Build all services
+        run: docker compose build
+
+      - name: Start services
+        run: docker compose up -d
+
+      - name: Wait for services to be healthy
+        run: |
+          echo "Waiting for services to start..."
+          sleep 30
+          docker compose ps
+
+      - name: Check service logs
+        run: docker compose logs --tail=50
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v --remove-orphans
+
+  # ===========================================================================
+  # Job 7: Build Verification
   # ===========================================================================
   build:
     name: 🏗️ Build
@@ -252,7 +350,7 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile || pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Build Next.js application
         run: pnpm --filter @fcke/web build
