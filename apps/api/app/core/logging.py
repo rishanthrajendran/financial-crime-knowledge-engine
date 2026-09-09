@@ -7,7 +7,7 @@ with JSON output in production and human-readable output in development.
 
 import logging
 import sys
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 
 import structlog
 from structlog.types import Processor

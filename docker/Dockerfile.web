@@ -1,6 +1,6 @@
 # =============================================================================
 # Financial Crime Knowledge Engine - Web Dockerfile
-# Multi-stage build for Next.js frontend
+# Multi-stage build for Next.js frontend with pnpm workspace
 # =============================================================================
 
 # Stage 1: Dependencies
@@ -8,25 +8,32 @@ FROM node:20-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Copy package files
-COPY apps/web/package.json apps/web/pnpm-lock.yaml* ./
-COPY package.json pnpm-workspace.yaml ./
+# Copy package files for workspace
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/web/package.json ./apps/web/
 
-# Install pnpm and dependencies
-RUN corepack enable && corepack prepare pnpm@latest --activate
-RUN pnpm install --frozen-lockfile || pnpm install
+# Enable corepack and install pnpm (use exact version from package.json)
+RUN corepack enable && corepack prepare pnpm@9.1.0 --activate
+
+# Install dependencies with frozen lockfile
+# Use --shamefully-hoist for better Docker compatibility
+RUN pnpm install --frozen-lockfile --shamefully-hoist
 
 # Stage 2: Build
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+# Copy node_modules from deps stage
 COPY --from=deps /app/node_modules ./node_modules
+
+# Copy source code
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Enable corepack and build (use exact version from package.json)
+RUN corepack enable && corepack prepare pnpm@9.1.0 --activate
 RUN pnpm run build --filter @fcke/web
 
 # Stage 3: Production

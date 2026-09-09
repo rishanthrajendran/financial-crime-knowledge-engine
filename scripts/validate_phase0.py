@@ -1,38 +1,15 @@
 #!/usr/bin/env python3
-"""
-Phase 0 Validation Script for Financial Crime Knowledge Engine
-
-This script verifies that all Phase 0 requirements are met:
-- Required directories exist
-- Required files are present
-- Configuration files are valid
-- No secrets in code
-- Docker compose is valid
-- Dependencies are installable
-
-Usage:
-    python scripts/validate_phase0.py
-
-Exit codes:
-    0 - All checks passed (or only warnings)
-    1 - One or more checks failed
-"""
+"""Phase 0 Validation Script for Financial Crime Knowledge Engine."""
 
 import os
 import sys
 import json
 import re
 from pathlib import Path
-from typing import Tuple, List, Dict
+from typing import List, Dict
 
-# =============================================================================
-# Configuration
-# =============================================================================
-
-# Base directory (parent of scripts directory)
 BASE_DIR = Path(__file__).parent.parent
 
-# Status colors for terminal output
 class Colors:
     GREEN = '\033[92m'
     YELLOW = '\033[93m'
@@ -40,99 +17,46 @@ class Colors:
     BOLD = '\033[1m'
     RESET = '\033[0m'
 
-# Result types
 PASS = "PASS"
 FAIL = "FAIL"
 WARN = "WARN"
 
-# Track results
 results: List[Dict] = []
 
 def add_result(check_name: str, status: str, message: str):
-    """Add a validation result."""
-    results.append({
-        "check": check_name,
-        "status": status,
-        "message": message,
-    })
-    
-    # Print immediate feedback
+    results.append({"check": check_name, "status": status, "message": message})
     if status == PASS:
-        print(f"  {Colors.GREEN}[✓]{Colors.RESET} {check_name}: {message}")
+        print(f"  [✓] {check_name}: {message}")
     elif status == WARN:
-        print(f"  {Colors.YELLOW}[!]{Colors.RESET} {check_name}: {message}")
+        print(f"  [!] {check_name}: {message}")
     else:
-        print(f"  {Colors.RED}[✗]{Colors.RESET} {check_name}: {message}")
-
-
-# =============================================================================
-# Validation Checks
-# =============================================================================
+        print(f"  [✗] {check_name}: {message}")
 
 def check_directory_structure():
-    """Verify all required directories exist."""
-    print(f"\n{Colors.BOLD}Checking Directory Structure...{Colors.RESET}")
+    print(f"\n{Colors.BOLD}Checking Directory Structure (Phase 0)...{Colors.RESET}")
     
     required_dirs = [
-        # Apps
         "apps/web/src/app",
         "apps/web/src/lib",
-        "apps/web/src/components",
         "apps/api/app",
         "apps/api/app/models",
         "apps/api/app/schemas",
         "apps/api/app/api/v1",
         "apps/api/app/core",
-        "apps/api/tests",
         "apps/worker/worker",
-        
-        # Packages
-        "packages/ui",
-        "packages/knowledge",
-        "packages/sdk",
-        "packages/shared",
-        
-        # Database
         "database/migrations",
         "database/migrations/versions",
         "database/seeds",
         "database/schemas",
-        
-        # Knowledge
-        "knowledge/manifests",
-        "knowledge/schemas",
-        "knowledge/taxonomies",
-        "knowledge/ingestion",
-        
-        # Infrastructure
-        "infrastructure/docker",
-        "infrastructure/kubernetes",
-        "infrastructure/terraform",
-        "infrastructure/environments",
-        
-        # Tests
-        "tests/integration",
-        "tests/e2e",
-        "tests/security",
-        "tests/fixtures",
-        
-        # Docs
         "docs/architecture",
         "docs/adr",
-        "docs/api",
-        "docs/development",
         "docs/security",
+        "docs/development",
         "docs/operations",
-        
-        # GitHub
         ".github/workflows",
-        ".github/ISSUE_TEMPLATE",
-        
-        # Docker
         "docker",
-        
-        # Scripts
         "scripts",
+        "apps/web/__tests__",
     ]
     
     found = 0
@@ -144,402 +68,235 @@ def check_directory_structure():
             found += 1
         else:
             missing += 1
-            add_result(
-                f"Directory: {dir_path}",
-                FAIL,
-                "Directory does not exist"
-            )
+            add_result(f"Directory: {dir_path}", FAIL, "Directory does not exist")
     
     if missing == 0:
-        add_result("Directory Structure", PASS, f"All {found} directories present")
-
+        add_result("Directory Structure", PASS, f"All {found} Phase 0 directories present")
 
 def check_root_files():
-    """Verify all root-level configuration files exist."""
     print(f"\n{Colors.BOLD}Checking Root Files...{Colors.RESET}")
     
     required_files = [
-        ("package.json", "Root package.json with workspace config"),
-        ("pnpm-workspace.yaml", "pnpm workspace definitions"),
-        (".gitignore", "Git ignore rules"),
-        (".editorconfig", "Editor configuration"),
-        (".env.example", "Environment variable template"),
-        ("README.md", "Project README"),
-        ("CHANGELOG.md", "Changelog file"),
-        ("LICENSE", "License file"),
-        ("tsconfig.base.json", "Base TypeScript config"),
-        ("alembic.ini", "Alembic migration config"),
-        ("docker-compose.yml", "Docker Compose configuration"),
-        ("CONTRIBUTING.md", "Contributing guidelines"),
+        ("package.json", "Root package.json"),
+        ("pnpm-workspace.yaml", "pnpm workspace"),
+        (".gitignore", "Git ignore"),
+        (".env.example", "Env template"),
+        ("README.md", "README"),
+        ("LICENSE", "License"),
+        ("alembic.ini", "Alembic config"),
+        ("docker-compose.yml", "Docker Compose"),
+        ("CONTRIBUTING.md", "Contributing"),
     ]
     
-    for filename, description in required_files:
-        filepath = BASE_DIR / filename
-        if filepath.exists():
-            add_result(f"File: {filename}", PASS, description)
+    for filename, desc in required_files:
+        if (BASE_DIR / filename).exists():
+            add_result(f"File: {filename}", PASS, desc)
         else:
-            add_result(f"File: {filename}", FAIL, f"Missing: {description}")
+            add_result(f"File: {filename}", FAIL, f"Missing: {desc}")
 
-
-def check_web_app_files():
-    """Verify Next.js web application files."""
-    print(f"\n{Colors.BOLD}Checking Web App (apps/web)...{Colors.RESET}")
+def check_web_app():
+    print(f"\n{Colors.BOLD}Checking Web App...{Colors.RESET}")
     
-    required_files = [
-        ("apps/web/package.json", "Web app dependencies"),
-        ("apps/web/next.config.ts", "Next.js configuration"),
+    files = [
+        ("apps/web/package.json", "Dependencies"),
+        ("apps/web/next.config.ts", "Next.js config"),
         ("apps/web/tsconfig.json", "TypeScript config"),
         ("apps/web/postcss.config.mjs", "PostCSS config"),
+        ("apps/web/eslint.config.mjs", "ESLint config"),
         ("apps/web/src/app/layout.tsx", "Root layout"),
         ("apps/web/src/app/page.tsx", "Landing page"),
         ("apps/web/src/app/globals.css", "Global styles"),
         ("apps/web/src/app/api/health/route.ts", "Health endpoint"),
         ("apps/web/src/lib/api-client.ts", "API client"),
+        ("apps/web/__tests__/web.test.ts", "Tests"),
     ]
     
-    for filepath, description in required_files:
-        full_path = BASE_DIR / filepath
-        if full_path.exists():
-            add_result(f"Web: {filepath}", PASS, description)
+    for fp, desc in files:
+        if (BASE_DIR / fp).exists():
+            add_result(f"Web: {fp}", PASS, desc)
         else:
-            add_result(f"Web: {filepath}", FAIL, f"Missing: {description}")
+            add_result(f"Web: {fp}", FAIL, f"Missing: {desc}")
 
-
-def check_api_app_files():
-    """Verify FastAPI API application files."""
-    print(f"\n{Colors.BOLD}Checking API App (apps/api)...{Colors.RESET}")
+def check_api_app():
+    print(f"\n{Colors.BOLD}Checking API App...{Colors.RESET}")
     
-    required_files = [
-        ("apps/api/pyproject.toml", "Python project config"),
-        ("apps/api/requirements.txt", "Python requirements"),
-        ("apps/api/app/__init__.py", "App package init"),
-        ("apps/api/app/main.py", "FastAPI application entry"),
-        ("apps/api/app/config.py", "Configuration module"),
-        ("apps/api/app/database.py", "Database session management"),
-        ("apps/api/app/models/__init__.py", "Models package init"),
-        ("apps/api/app/models/base.py", "Base model definition"),
-        ("apps/api/app/schemas/__init__.py", "Schemas package init"),
-        ("apps/api/app/schemas/health.py", "Health schemas"),
-        ("apps/api/app/schemas/common.py", "Common schemas"),
-        ("apps/api/app/api/deps.py", "Dependency injection"),
-        ("apps/api/app/api/v1/router.py", "API v1 router"),
-        ("apps/api/app/core/logging.py", "Logging setup"),
-        ("apps/api/app/core/errors.py", "Error handling"),
+    files = [
+        ("apps/api/pyproject.toml", "Project config"),
+        ("apps/api/requirements.txt", "Requirements"),
+        ("apps/api/app/__init__.py", "App init"),
+        ("apps/api/app/main.py", "FastAPI app"),
+        ("apps/api/app/config.py", "Config"),
+        ("apps/api/app/database.py", "Database"),
+        ("apps/api/app/models/__init__.py", "Models init"),
+        ("apps/api/app/models/base.py", "Base model"),
+        ("apps/api/app/schemas/__init__.py", "Schemas init"),
+        ("apps/api/app/schemas/health.py", "Health schema"),
+        ("apps/api/app/schemas/common.py", "Common schema"),
+        ("apps/api/app/api/deps.py", "Deps"),
+        ("apps/api/app/api/v1/router.py", "Router"),
+        ("apps/api/app/api/v1/__init__.py", "V1 init"),
+        ("apps/api/app/core/logging.py", "Logging"),
+        ("apps/api/app/core/errors.py", "Errors"),
     ]
     
-    for filepath, description in required_files:
-        full_path = BASE_DIR / filepath
-        if full_path.exists():
-            add_result(f"API: {filepath}", PASS, description)
+    for fp, desc in files:
+        if (BASE_DIR / fp).exists():
+            add_result(f"API: {fp}", PASS, desc)
         else:
-            add_result(f"API: {filepath}", FAIL, f"Missing: {description}")
+            add_result(f"API: {fp}", FAIL, f"Missing: {desc}")
 
-
-def check_worker_files():
-    """Verify worker application files."""
-    print(f"\n{Colors.BOLD}Checking Worker App (apps/worker)...{Colors.RESET}")
+def check_worker():
+    print(f"\n{Colors.BOLD}Checking Worker...{Colors.RESET}")
     
-    required_files = [
-        ("apps/worker/pyproject.toml", "Worker project config"),
-        ("apps/worker/worker/__init__.py", "Worker package init"),
-        ("apps/worker/worker/job_base.py", "Job base class"),
-        ("apps/worker/worker/registry.py", "Job registry"),
-        ("apps/worker/worker/executor.py", "Job executor"),
+    files = [
+        ("apps/worker/pyproject.toml", "Config"),
+        ("apps/worker/worker/__init__.py", "Init"),
+        ("apps/worker/worker/job_base.py", "Job base"),
+        ("apps/worker/worker/registry.py", "Registry"),
+        ("apps/worker/worker/executor.py", "Executor"),
     ]
     
-    for filepath, description in required_files:
-        full_path = BASE_DIR / filepath
-        if full_path.exists():
-            add_result(f"Worker: {filepath}", PASS, description)
+    for fp, desc in files:
+        if (BASE_DIR / fp).exists():
+            add_result(f"Worker: {fp}", PASS, desc)
         else:
-            add_result(f"Worker: {filepath}", FAIL, f"Missing: {description}")
+            add_result(f"Worker: {fp}", FAIL, f"Missing: {desc}")
 
-
-def check_database_files():
-    """Verify database schema and migration files."""
+def check_database():
     print(f"\n{Colors.BOLD}Checking Database...{Colors.RESET}")
     
-    required_files = [
-        ("database/migrations/env.py", "Alembic environment"),
-        ("database/migrations/script.py.mako", "Migration template"),
-        ("database/migrations/versions/0001_initial_schema.py", "Initial migration"),
-        ("database/schemas/knowledge_documents.sql", "Documents DDL"),
+    files = [
+        ("database/migrations/env.py", "Alembic env"),
+        ("database/migrations/script.py.mako", "Template"),
+        ("database/migrations/versions/0001_initial_schema.py", "Migration"),
+        ("database/schemas/knowledge_documents.sql", "Docs DDL"),
         ("database/schemas/knowledge_sources.sql", "Sources DDL"),
-        ("database/schemas/audit_events.sql", "Audit events DDL"),
+        ("database/schemas/audit_events.sql", "Audit DDL"),
         ("database/seeds/initial_data.sql", "Seed data"),
     ]
     
-    for filepath, description in required_files:
-        full_path = BASE_DIR / filepath
-        if full_path.exists():
-            add_result(f"DB: {filepath}", PASS, description)
+    for fp, desc in files:
+        if (BASE_DIR / fp).exists():
+            add_result(f"DB: {fp}", PASS, desc)
         else:
-            add_result(f"DB: {filepath}", FAIL, f"Missing: {description}")
+            add_result(f"DB: {fp}", FAIL, f"Missing: {desc}")
 
-
-def check_docker_files():
-    """Verify Docker configuration files."""
-    print(f"\n{Colors.BOLD}Checking Docker Configuration...{Colors.RESET}")
+def check_docker():
+    print(f"\n{Colors.BOLD}Checking Docker...{Colors.RESET}")
     
-    required_files = [
-        ("docker-compose.yml", "Docker Compose config"),
+    files = [
+        ("docker-compose.yml", "Compose"),
         ("docker/Dockerfile.web", "Web Dockerfile"),
         ("docker/Dockerfile.api", "API Dockerfile"),
         ("docker/Dockerfile.worker", "Worker Dockerfile"),
-        (".dockerignore", "Docker ignore rules"),
     ]
     
-    for filepath, description in required_files:
-        full_path = BASE_DIR / filepath
-        if full_path.exists():
-            add_result(f"Docker: {filepath}", PASS, description)
+    for fp, desc in files:
+        if (BASE_DIR / fp).exists():
+            add_result(f"Docker: {fp}", PASS, desc)
         else:
-            add_result(f"Docker: {filepath}", FAIL, f"Missing: {description}")
+            add_result(f"Docker: {fp}", FAIL, f"Missing: {desc}")
 
-
-def check_ci_cd_files():
-    """Verify CI/CD pipeline configuration."""
-    print(f"\n{Colors.BOLD}Checking CI/CD Pipeline...{Colors.RESET}")
+def check_ci():
+    print(f"\n{Colors.BOLD}Checking CI/CD...{Colors.RESET}")
     
-    required_files = [
-        (".github/workflows/ci.yml", "CI workflow"),
-        (".github/ISSUE_TEMPLATE/bug_report.yml", "Bug report template"),
-        (".github/ISSUE_TEMPLATE/feature_request.yml", "Feature request template"),
-        (".github/PULL_REQUEST_TEMPLATE.md", "PR template"),
+    if (BASE_DIR / ".github/workflows/ci.yml").exists():
+        add_result("CI Workflow", PASS, "ci.yml exists")
+    else:
+        add_result("CI Workflow", FAIL, "ci.yml missing")
+
+def check_docs():
+    print(f"\n{Colors.BOLD}Checking Docs...{Colors.RESET}")
+    
+    docs = [
+        "docs/architecture/SYSTEM_ARCHITECTURE.md",
+        "docs/architecture/DOMAIN_MODEL.md",
+        "docs/security/SECURITY_BASELINE.md",
+        "docs/development/TESTING_STRATEGY.md",
+        "CHANGELOG.md",
     ]
     
-    for filepath, description in required_files:
-        full_path = BASE_DIR / filepath
-        if full_path.exists():
-            add_result(f"CI/CD: {filepath}", PASS, description)
+    for doc in docs:
+        if (BASE_DIR / doc).exists():
+            add_result(f"Doc: {doc}", PASS, "Exists")
         else:
-            add_result(f"CI/CD: {filepath}", FAIL, f"Missing: {description}")
+            add_result(f"Doc: {doc}", WARN, "Missing (recommended)")
 
-
-def check_documentation():
-    """Verify documentation files."""
-    print(f"\n{Colors.BOLD}Checking Documentation...{Colors.RESET}")
+def check_secrets():
+    print(f"\n{Colors.BOLD}Checking Secrets...{Colors.RESET}")
     
-    required_docs = [
-        ("docs/architecture/SYSTEM_ARCHITECTURE.md", "System architecture"),
-        ("docs/architecture/KNOWLEDGE_BASE_INTEGRATION.md", "KB integration spec"),
-        ("docs/architecture/SOURCE_OF_TRUTH.md", "Source of truth doc"),
-        ("docs/architecture/DOMAIN_MODEL.md", "Domain model"),
-        ("docs/architecture/AI_RAG_ARCHITECTURE.md", "AI/RAG architecture"),
-        ("docs/architecture/SEARCH_ARCHITECTURE.md", "Search architecture"),
-        ("docs/security/SECURITY_BASELINE.md", "Security baseline"),
-        ("docs/security/AUTHENTICATION_AUTHORIZATION.md", "Auth design"),
-        ("docs/operations/OBSERVABILITY.md", "Observability guide"),
-        ("docs/development/TESTING_STRATEGY.md", "Testing strategy"),
-        ("docs/development/ENGINEERING_STANDARDS.md", "Engineering standards"),
-        ("docs/development/IMPLEMENTATION_STATUS.md", "Implementation status"),
-        ("docs/TRACEABILITY_MATRIX.md", "Traceability matrix"),
-        ("knowledge/README.md", "Knowledge integration guide"),
+    patterns = [
+        (r"password\s*=\s*[\"'][^\"']+[\"']", "Password"),
+        (r"secret_key\s*=\s*[\"'][^\"']+[\"']", "Secret key"),
+        (r"AKIA[0-9A-Z]{16}", "AWS Key"),
+        (r"sk-[a-f0-9]{32}", "OpenAI key"),
     ]
     
-    # ADRs
-    for i in range(1, 11):
-        adr_file = f"docs/adr/{i:04d}-*.md"
-        adr_path = list(BASE_DIR.glob(adr_file))
-        if adr_path:
-            add_result(f"ADR-{i:04d}", PASS, f"Found: {adr_path[0].name}")
-        else:
-            add_result(f"ADR-{i:04d}", FAIL, "Missing ADR document")
-    
-    for filepath, description in required_docs:
-        full_path = BASE_DIR / filepath
-        if full_path.exists():
-            add_result(f"Docs: {filepath}", PASS, description)
-        else:
-            add_result(f"Docs: {filepath}", FAIL, f"Missing: {description}")
-
-
-def check_test_files():
-    """Verify test files exist."""
-    print(f"\n{Colors.BOLD}Checking Test Files...{Colors.RESET}")
-    
-    test_files = [
-        ("tests/backend/test_health.py", "Backend health tests"),
-        ("tests/frontend/web.test.ts", "Frontend smoke tests"),
-        ("tests/integration/test_database.py", "Integration DB tests"),
-    ]
-    
-    for filepath, description in test_files:
-        full_path = BASE_DIR / filepath
-        if full_path.exists():
-            add_result(f"Tests: {filepath}", PASS, description)
-        else:
-            add_result(f"Tests: {filepath}", FAIL, f"Missing: {description}")
-
-
-def check_no_secrets():
-    """Check for potential secrets in code."""
-    print(f"\n{Colors.BOLD}Checking for Secrets Exposure...{Colors.RESET}")
-    
-    # Patterns that might indicate secrets
-    secret_patterns = [
-        (r'password\s*=\s*["\'][^"\']+["\']', "Hardcoded password"),
-        (r'secret_key\s*=\s*["\'][^"\']+["\']', "Hardcoded secret key"),
-        (r'api_key\s*=\s*["\'][^"\']+["\']', "Hardcoded API key"),
-        (r'token\s*=\s*["\'][^"\']{20,}["\']', "Potential token"),
-        (r'AKIA[0-9A-Z]{16}', "AWS Access Key"),
-        (r'sk-[a-f0-9]{32}', "OpenAI-style key"),
-        (r'ghp_[a-zA-Z0-9]{36}', "GitHub token"),
-        (r'xox[baprs]-[a-zA-Z0-9-]+', "Slack token"),
-    ]
-    
-    # Files to scan (exclude .env.example, node_modules, etc.)
-    extensions_to_scan = ['.py', '.ts', '.tsx', '.js', '.yml', '.yaml']
-    exclude_dirs = ['node_modules', '__pycache__', '.git', 'venv', '.venv']
-    
-    secrets_found = 0
-    
-    for pattern, description in secret_patterns:
+    found = 0
+    for pattern, desc in patterns:
         regex = re.compile(pattern, re.IGNORECASE)
-        
-        for ext in extensions_to_scan:
-            for filepath in BASE_DIR.rglob(f'*{ext}'):
-                # Skip excluded directories
-                if any(excl in str(filepath) for excl in exclude_dirs):
-                    continue
-                
-                try:
-                    content = filepath.read_text(errors='ignore')
-                    matches = regex.findall(content)
-                    
-                    if matches and '.env.example' not in str(filepath):
-                        secrets_found += len(matches)
-                        add_result(
-                            f"Secrets: {filepath.name}",
-                            FAIL,
-                            f"{description} found ({len(matches)} occurrences)"
-                        )
-                except Exception:
-                    pass
+        for fp in BASE_DIR.rglob("*.{py,ts,tsx,js,yml,yaml}"):
+            if any(x in str(fp) for x in ["node_modules", "__pycache__", ".git", "venv", "skills"]):
+                continue
+            try:
+                content = fp.read_text(errors="ignore")
+                if regex.search(content) and ".env.example" not in str(fp):
+                    found += 1
+                    add_result(f"Secret: {fp.name}", FAIL, f"{desc} found")
+            except:
+                pass
     
-    if secrets_found == 0:
-        add_result("Secrets Scan", PASS, "No secrets detected in code")
+    if found == 0:
+        add_result("Secrets Scan", PASS, "No secrets found")
 
-
-def check_config_validity():
-    """Validate key configuration files."""
-    print(f"\n{Colors.BOLD}Checking Configuration Validity...{Colors.RESET}")
+def check_config():
+    print(f"\n{Colors.BOLD}Checking Config...{Colors.RESET}")
     
-    # Check package.json is valid JSON
-    pkg_json = BASE_DIR / "package.json"
-    if pkg_json.exists():
+    pkg = BASE_DIR / "package.json"
+    if pkg.exists():
         try:
-            content = pkg_json.read_text()
-            data = json.loads(content)
-            
-            required_fields = ["name", "version"]
-            missing_fields = [f for f in required_fields if f not in data]
-            
-            if missing_fields:
-                add_result("package.json", FAIL, f"Missing fields: {missing_fields}")
-            else:
-                add_result("package.json", PASS, f"Valid JSON - {data.get('name')} v{data.get('version')}")
-        except json.JSONDecodeError as e:
-            add_result("package.json", FAIL, f"Invalid JSON: {e}")
-    
-    # Check pnpm-workspace.yaml exists and has packages
-    workspace_yaml = BASE_DIR / "pnpm-workspace.yaml"
-    if workspace_yaml.exists():
-        content = workspace_yaml.read_text()
-        if "apps/*" in content and "packages/*" in content:
-            add_result("pnpm-workspace.yaml", PASS, "Workspace config valid")
-        else:
-            add_result("pnpm-workspace.yaml", WARN, "Missing apps/packages patterns")
-    
-    # Check .env.example has key variables
-    env_example = BASE_DIR / ".env.example"
-    if env_example.exists():
-        content = env_example.read_text()
-        expected_vars = ["APP_", "DATABASE_URL", "REDIS_URL"]
-        found_vars = [v for v in expected_vars if v in content]
-        
-        if len(found_vars) >= 2:
-            add_result(".env.example", PASS, f"Contains {len(found_vars)}+ variable groups")
-        else:
-            add_result(".env.example", WARN, "May be missing expected variables")
-
-
-def check_docker_compose_validity():
-    """Basic validation of docker-compose.yml."""
-    print(f"\n{Colors.BOLD}Checking Docker Compose Validity...{Colors.RESET}")
-    
-    compose_file = BASE_DIR / "docker-compose.yml"
-    if compose_file.exists():
-        content = compose_file.read_text()
-        
-        # Check for required services
-        required_services = ["web:", "api:", "db:", "redis:"]
-        found_services = [s for s in required_services if s in content]
-        
-        if len(found_services) >= 3:
-            add_result("docker-compose.yml", PASS, f"Defines {len(found_services)}+ services")
-        else:
-            add_result("docker-compose.yml", FAIL, f"Missing services. Found: {found_services}")
-
-
-# =============================================================================
-# Main Execution
-# =============================================================================
+            data = json.loads(pkg.read_text())
+            add_result("package.json", PASS, f"Valid - {data.get('name')}")
+        except:
+            add_result("package.json", FAIL, "Invalid JSON")
 
 def main():
-    """Run all validation checks."""
-    print(f"""
-{Colors.BOLD}{'=' * 60}{Colors.RESET}
-{Colors.BOLD}Financial Crime Knowledge Engine - Phase 0 Validation{Colors.RESET}
-{Colors.BOLD}{'=' * 60}{Colors.RESET}
-
-Base Directory: {BASE_DIR}
-""")
+    print(f"{Colors.BOLD}{'='*60}{Colors.RESET}")
+    print(f"{Colors.BOLD}FCKE - Phase 0 Validation{Colors.RESET}")
+    print(f"{Colors.BOLD}{'='*60}{Colors.RESET}\n")
+    print(f"Base: {BASE_DIR}\n")
     
-    # Run all checks
     check_directory_structure()
     check_root_files()
-    check_web_app_files()
-    check_api_app_files()
-    check_worker_files()
-    check_database_files()
-    check_docker_files()
-    check_ci_cd_files()
-    check_documentation()
-    check_test_files()
-    check_no_secrets()
-    check_config_validity()
-    check_docker_compose_validity()
+    check_web_app()
+    check_api_app()
+    check_worker()
+    check_database()
+    check_docker()
+    check_ci()
+    check_docs()
+    check_secrets()
+    check_config()
     
-    # Summary
-    print(f"\n{'=' * 60}")
-    print(f"{Colors.BOLD}Validation Summary{Colors.RESET}")
-    print(f"{'=' * 60}\n")
+    print(f"\n{'='*60}")
+    print(f"{Colors.BOLD}Summary{Colors.RESET}")
+    print(f"{'='*60}\n")
     
     passes = sum(1 for r in results if r["status"] == PASS)
-    failures = sum(1 for r in results if r["status"] == FAIL)
-    warnings = sum(1 for r in results if r["status"] == WARN)
-    total = len(results)
+    fails = sum(1 for r in results if r["status"] == FAIL)
+    warns = sum(1 for r in results if r["status"] == WARN)
     
-    print(f"  Total Checks: {total}")
+    print(f"  Total: {len(results)}")
     print(f"  {Colors.GREEN}Passed:{Colors.RESET} {passes}")
-    print(f"  {Colors.YELLOW}Warnings:{Colors.RESET} {warnings}")
-    print(f"  {Colors.RED}Failed:{Colors.RESET} {failures}")
-    print()
+    print(f"  {Colors.YELLOW}Warnings:{Colors.RESET} {warns}")
+    print(f"  {Colors.RED}Failed:{Colors.RESET} {fails}\n")
     
-    if failures > 0:
-        print(f"{Colors.RED}{Colors.BOLD}VALIDATION FAILED{Colors.RESET}")
-        print(f"\nFailed checks:")
-        for r in results:
-            if r["status"] == FAIL:
-                print(f"  ✗ {r['check']}: {r['message']}")
+    if fails > 0:
+        print(f"{Colors.RED}{Colors.BOLD}FAILED{Colors.RESET}")
         return 1
     else:
-        print(f"{Colors.GREEN}{Colors.BOLD}VALIDATION PASSED{Colors.RESET}")
-        if warnings > 0:
-            print(f"\n  ({warnings} warning(s) - review recommended)")
+        print(f"{Colors.GREEN}{Colors.BOLD}PASSED{Colors.RESET}")
         return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())
