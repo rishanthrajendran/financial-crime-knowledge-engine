@@ -9,8 +9,8 @@ location to prevent parent-directory .env leakage. The application will ONLY
 load .env from the apps/api/ directory, not from parent directories.
 """
 
-from pathlib import Path
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from pydantic import Field, field_validator

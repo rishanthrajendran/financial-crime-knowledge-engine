@@ -59,10 +59,10 @@ class SoftDeleteMixin:
 class Base(DeclarativeBase, UUIDMixin, TimestampMixin):
     """
     Base class for all SQLAlchemy models.
-    
+
     Combines UUID primary key and automatic timestamps.
     Add SoftDeleteMixin to models that need soft delete.
-    
+
     Example:
         class KnowledgeDocument(Base, SoftDeleteMixin):
             __tablename__ = "knowledge_documents"

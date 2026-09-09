@@ -1,1 +1,40 @@
-{"name": "financial-crime-knowledge-engine", "version": "0.1.0", "private": true, "description": "Financial Crime Knowledge Engine - Phase 0 Software Foundation", "type": "module", "scripts": {"dev:web": "pnpm --filter @fcke/web dev", "build:web": "pnpm --filter @fcke/web build", "lint:web": "pnpm --filter @fcke/web lint", "test:web": "pnpm --filter @fcke/web test", "lint": "pnpm -r lint", "test": "pnpm -r test", "type-check": "pnpm -r type-check", "build": "pnpm -r build", "clean": "pnpm -r exec rm -rf node_modules dist .next", "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"", "validate": "python scripts/validate_phase0.py"}, "engines": {"node": ">=18.0.0", "pnpm": ">=8.0.0"}, "packageManager": "pnpm@9.1.0", "keywords": ["financial-crime", "knowledge-engine", "aml", "compliance"], "license": "MIT", "author": "Financial Crime Knowledge Engine Team"}
+{
+  "name": "financial-crime-knowledge-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Financial Crime Knowledge Engine - Phase 0 Software Foundation",
+  "type": "module",
+  "scripts": {
+    "dev:web": "pnpm --filter @fcke/web dev",
+    "build:web": "pnpm --filter @fcke/web build",
+    "lint:web": "pnpm --filter @fcke/web lint",
+    "test:web": "pnpm --filter @fcke/web test",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "type-check": "pnpm -r type-check",
+    "build": "pnpm -r build",
+    "clean": "pnpm -r exec rm -rf node_modules dist .next",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "validate": "python scripts/validate_phase0.py"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@9.1.0",
+  "keywords": [
+    "financial-crime",
+    "knowledge-engine",
+    "aml",
+    "compliance"
+  ],
+  "license": "MIT",
+  "author": "Financial Crime Knowledge Engine Team",
+  "pnpm": {
+    "overrides": {
+      "vite": "^6.4.3",
+      "postcss": "^8.5.23",
+      "@vitest/mocker": "^4.1.11"
+    }
+  }
+}

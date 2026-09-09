@@ -40,7 +40,11 @@ class FCKEError(Exception):
 class ValidationError(FCKEError):
     """Request validation failed."""
 
-    def __init__(self, message: str = "Validation failed", details: dict[str, Any] | None = None):
+    def __init__(
+        self,
+        message: str = "Validation failed",
+        details: dict[str, Any] | None = None,
+    ):
         super().__init__(
             message=message,
             code="VALIDATION_ERROR",
@@ -102,7 +106,11 @@ class ForbiddenError(FCKEError):
 class DatabaseError(FCKEError):
     """Database operation failed."""
 
-    def __init__(self, message: str = "Database operation failed", original_error: str | None = None):
+    def __init__(
+        self,
+        message: str = "Database operation failed",
+        original_error: str | None = None,
+    ):
         super().__init__(
             message=message,
             code="DATABASE_ERROR",

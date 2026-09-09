@@ -12,7 +12,7 @@ the execute() method. The framework handles:
 import abc
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any, Generic, TypeVar
 
@@ -119,7 +119,7 @@ class JobBase(abc.ABC, Generic[T]):
         
         # Runtime state
         self.status = JobStatus.PENDING
-        self.created_at = datetime.now(timezone.utc)
+        self.created_at = datetime.now(UTC)
         self.started_at: datetime | None = None
         self.completed_at: datetime | None = None
         self.attempt_count = 0
@@ -147,7 +147,7 @@ class JobBase(abc.ABC, Generic[T]):
         Handles status tracking, timing, retries, and error handling.
         """
         self.status = JobStatus.RUNNING
-        self.started_at = datetime.now(timezone.utc)
+        self.started_at = datetime.now(UTC)
         start_time = time.monotonic()
         
         context = JobContext(
@@ -174,13 +174,13 @@ class JobBase(abc.ABC, Generic[T]):
                 
                 if result.success:
                     self.status = JobStatus.COMPLETED
-                    self.completed_at = datetime.now(timezone.utc)
+                    self.completed_at = datetime.now(UTC)
                     return result
                 else:
                     last_result = result
                     self.last_error = result.error or "Job returned unsuccessful"
                     
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - Job runner must catch all exceptions
                 last_result = JobResult(
                     success=False,
                     error=str(e),
@@ -190,7 +190,7 @@ class JobBase(abc.ABC, Generic[T]):
 
         # All retries exhausted
         self.status = JobStatus.FAILED
-        self.completed_at = datetime.now(timezone.utc)
+        self.completed_at = datetime.now(UTC)
         
         return last_result or JobResult(
             success=False,

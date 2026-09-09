@@ -9,9 +9,7 @@ from collections.abc import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import get_settings
-from app.database import get_async_session, check_database_connection
-from app.core.errors import FCKEError
+from app.database import check_database_connection, get_async_session
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
@@ -23,7 +21,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 async def get_redis_health() -> bool:
     """
     Check Redis health.
-    
+
     Phase 0: Returns True as placeholder.
     Phase 1+: Will implement actual Redis health check.
     """
@@ -34,12 +32,12 @@ async def get_redis_health() -> bool:
 async def verify_readiness() -> dict[str, bool]:
     """
     Verify all dependencies are ready.
-    
+
     Returns a dict of component names to their ready status.
     """
     db_healthy = await check_database_connection()
     redis_healthy = await get_redis_health()
-    
+
     return {
         "database": db_healthy,
         "redis": redis_healthy,

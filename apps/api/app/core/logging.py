@@ -9,6 +9,7 @@ import logging
 import sys
 
 import structlog
+from typing import CAST
 from structlog.types import Processor
 
 
@@ -18,7 +19,7 @@ def setup_logging(
 ) -> None:
     """
     Configure structured logging for the application.
-    
+
     Args:
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR)
         json_logs: If True, output JSON-formatted logs (for production)
@@ -67,4 +68,4 @@ def setup_logging(
 
 def get_logger(name: str | None = None) -> structlog.stdlib.BoundLogger:
     """Get a structured logger instance."""
-    return structlog.get_logger(name)
+    return CAST("BoundLogger", structlog.get_logger(name))

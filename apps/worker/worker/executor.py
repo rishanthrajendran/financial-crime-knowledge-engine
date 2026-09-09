@@ -10,12 +10,12 @@ Provides async execution of jobs with:
 
 import asyncio
 import logging
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
-from worker.job_base import JobBase, JobContext, JobResult, JobStatus
+from worker.job_base import JobBase, JobResult, JobStatus
 from worker.registry import registry
 
 
@@ -168,7 +168,7 @@ class JobExecutor:
             job_id=job.job_id,
             job_type=job.job_type,
             status=JobStatus.RUNNING,
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
         
         try:
@@ -176,7 +176,7 @@ class JobExecutor:
                 result = await job.run()
                 record.status = job.status
                 record.result = result
-                record.completed_at = datetime.now(timezone.utc)
+                record.completed_at = datetime.now(UTC)
                 
                 logger.info(
                     "job_completed",
@@ -190,7 +190,7 @@ class JobExecutor:
         except Exception as e:
             record.status = JobStatus.FAILED
             record.error = str(e)
-            record.completed_at = datetime.now(timezone.utc)
+            record.completed_at = datetime.now(UTC)
             
             logger.exception(
                 "job_failed",

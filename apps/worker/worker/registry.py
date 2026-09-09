@@ -6,9 +6,8 @@ dynamic registration and lookup of job classes.
 """
 
 import logging
-from typing import Type
 
-from worker.job_base import JobBase, JOB_TYPES
+from worker.job_base import JOB_TYPES, JobBase
 
 logger = logging.getLogger(__name__)
 
@@ -23,13 +22,13 @@ class JobRegistry:
 
     def __init__(self):
         """Initialize registry with built-in job types."""
-        self._jobs: dict[str, Type[JobBase]] = {}
+        self._jobs: dict[str, type[JobBase]] = {}
         
         # Register built-in job types
         for job_type, job_class in JOB_TYPES.items():
             self.register(job_type, job_class)
 
-    def register(self, job_type: str, job_class: Type[JobBase]) -> None:
+    def register(self, job_type: str, job_class: type[JobBase]) -> None:
         """
         Register a job type.
         
@@ -50,7 +49,7 @@ class JobRegistry:
         self._jobs[job_type] = job_class
         logger.debug("registered_job", job_type=job_type, job_class=str(job_class))
 
-    def get(self, job_type: str) -> Type[JobBase]:
+    def get(self, job_type: str) -> type[JobBase]:
         """
         Get a job class by type.
         

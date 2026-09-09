@@ -18,7 +18,7 @@ router = APIRouter(prefix="/v1", tags=["v1"])
 
 # Placeholder for future endpoints
 @router.get("/")
-async def v1_root():
+async def v1_root() -> dict[str, object]:
     """API v1 root - returns available endpoint groups."""
     return {
         "message": "Financial Crime Knowledge Engine API v1",

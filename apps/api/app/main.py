@@ -9,6 +9,7 @@ Main entry point for the API server. Provides:
 """
 
 from contextlib import asynccontextmanager
+from collections.abc import AsyncGenerator
 from datetime import datetime
 from typing import Literal
 
@@ -16,11 +17,11 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.config import settings
-from app.core.errors import FCKEError
-from app.core.logging import setup_logging, get_logger
 from app.api.deps import verify_readiness
 from app.api.v1.router import router as v1_router
+from app.config import settings
+from app.core.errors import FCKEError
+from app.core.logging import get_logger, setup_logging
 
 # Setup structured logging
 setup_logging(
@@ -32,7 +33,7 @@ logger = get_logger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan handler for startup and shutdown events."""
     # Startup
     logger.info(
@@ -40,12 +41,12 @@ async def lifespan(app: FastAPI):
         version=settings.app_version,
         environment=settings.app_env,
     )
-    
+
     yield
-    
+
     # Shutdown
     logger.info("shutting_down_application")
-    
+
     # Cleanup database connections
     from app.database import dispose_engine
     await dispose_engine()
@@ -80,7 +81,7 @@ app.add_middleware(
 
 # Exception handlers
 @app.exception_handler(FCKEError)
-async def fcke_error_handler(request: Request, exc: FCKEError):
+async def fcke_error_handler(request: Request, exc: FCKEError) -> JSONResponse:
     """Handle custom FCKE exceptions."""
     return JSONResponse(
         status_code=exc.status_code,
@@ -89,7 +90,7 @@ async def fcke_error_handler(request: Request, exc: FCKEError):
 
 
 @app.exception_handler(Exception)
-async def general_exception_handler(request: Request, exc: Exception):
+async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Handle unhandled exceptions."""
     logger.exception("unhandled_exception", path=request.url.path)
     return JSONResponse(
@@ -113,10 +114,10 @@ app.include_router(v1_router)
 
 
 @app.get("/health", tags=["system"])
-async def health_check():
+async def health_check() -> dict[str, str]:
     """
     Health check endpoint.
-    
+
     Returns basic health status without checking dependencies.
     Use / readiness for dependency checks.
     """
@@ -128,18 +129,18 @@ async def health_check():
 
 
 @app.get("/ready", tags=["system"])
-async def readiness_check():
+async def readiness_check() -> dict[str, object]:
     """
     Readiness probe endpoint.
-    
+
     Checks all dependencies (database, redis) and returns
     their individual statuses.
     """
     checks = await verify_readiness()
-    
+
     all_healthy = all(checks.values())
     status: Literal["ready", "not_ready"] = "ready" if all_healthy else "not_ready"
-    
+
     return {
         "status": status,
         "checks": [
@@ -154,10 +155,10 @@ async def readiness_check():
 
 
 @app.get("/version", tags=["system"])
-async def version_info():
+async def version_info() -> dict[str, str]:
     """
     Version information endpoint.
-    
+
     Returns current software version and dependency versions.
     """
     return {
@@ -171,7 +172,7 @@ async def version_info():
 
 
 @app.get("/", tags=["system"])
-async def root():
+async def root() -> dict[str, str]:
     """Root endpoint with API information."""
     return {
         "name": settings.app_name,
