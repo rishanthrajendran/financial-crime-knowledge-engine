@@ -3,20 +3,29 @@ Application configuration using Pydantic Settings.
 
 All configuration is loaded from environment variables with sensible defaults
 for local development. Use .env.example as a template for .env files.
+
+IMPORTANT: The env_file path is set to an absolute path based on this file's
+location to prevent parent-directory .env leakage. The application will ONLY
+load .env from the apps/api/ directory, not from parent directories.
 """
 
+from pathlib import Path
 from functools import lru_cache
 from typing import Literal
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# Get the directory where this config file is located
+_CONFIG_DIR = Path(__file__).resolve().parent
+
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        # Use absolute path to prevent parent directory .env leakage
+        env_file=str(_CONFIG_DIR / ".env"),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
