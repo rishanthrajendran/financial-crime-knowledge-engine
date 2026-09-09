@@ -70,8 +70,19 @@ async def run_async_migrations() -> None:
     
     This connects to a live database and applies migrations.
     """
+    # Get the configuration section and merge -x arguments into it
+    # The CI passes: alembic -c ../../alembic.ini -x sqlalchemy.url=$DATABASE_URL
+    # These -x args are stored in config.x_args, NOT in the ini section
+    # We must merge them so async_engine_from_config() can find sqlalchemy.url
+    section = config.get_section(config.config_ini_section, {})
+    
+    # Extract sqlalchemy.* options from -x arguments and merge into section
+    for key, value in config.x_args.items():
+        if key.startswith("sqlalchemy."):
+            section[key] = value
+    
     connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+        section,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
