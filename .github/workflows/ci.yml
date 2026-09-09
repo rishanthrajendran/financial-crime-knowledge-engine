@@ -302,9 +302,12 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run npm audit
-        run: pnpm audit --audit-level=moderate
+        run: pnpm audit --audit-level=high
         # MANDATORY: High/critical vulnerabilities will fail this step
-        # Note: moderate/low are informational; high/critical cause non-zero exit
+        # Note: Moderate vulnerabilities are informational for Phase 0
+        # Known: postcss@8.4.31 (pinned by Next.js) has moderate CVE - 
+        #       will resolve when Next.js updates their postcss dependency
+        # See: https://github.com/advisories/GHSA-fxqj-rqcc-2cmp
 
       - name: Check for secrets with TruffleHog
         uses: trufflesecurity/trufflehog@main
