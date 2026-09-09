@@ -32,10 +32,10 @@
   "author": "Financial Crime Knowledge Engine Team",
   "pnpm": {
     "overrides": {
-      "vite": "^5.4.21",
+      "vite": "^6.4.3",
       "postcss": "^8.5.23",
       "esbuild": "^0.25.0",
-      "@vitest/mocker": "^3.2.7"
+      "@vitest/mocker": "^4.1.11"
     }
   }
 }

@@ -7,10 +7,13 @@ with JSON output in production and human-readable output in development.
 
 import logging
 import sys
+from typing import TYPE_CHECKING, Any, cast
 
 import structlog
-from typing import CAST
 from structlog.types import Processor
+
+if TYPE_CHECKING:
+    from structlog.stdlib import BoundLogger
 
 
 def setup_logging(
@@ -66,6 +69,6 @@ def setup_logging(
     )
 
 
-def get_logger(name: str | None = None) -> structlog.stdlib.BoundLogger:
+def get_logger(name: str | None = None) -> "BoundLogger":
     """Get a structured logger instance."""
-    return CAST("BoundLogger", structlog.get_logger(name))
+    return cast("BoundLogger", structlog.get_logger(name))

@@ -8,8 +8,8 @@ Main entry point for the API server. Provides:
 - API v1 router (placeholder for Phase 1+)
 """
 
-from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Literal
 
@@ -155,7 +155,7 @@ async def readiness_check() -> dict[str, object]:
 
 
 @app.get("/version", tags=["system"])
-async def version_info() -> dict[str, str]:
+async def version_info() -> dict[str, object]:
     """
     Version information endpoint.
 
@@ -172,7 +172,7 @@ async def version_info() -> dict[str, str]:
 
 
 @app.get("/", tags=["system"])
-async def root() -> dict[str, str]:
+async def root() -> dict[str, object]:
     """Root endpoint with API information."""
     return {
         "name": settings.app_name,
